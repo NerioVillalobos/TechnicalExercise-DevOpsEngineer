@@ -12,13 +12,15 @@ Se decidio utilizaran las siguientes dependencias:
 3. Spring Boot Actuator
 
 Con estas dependencia vamos a poder lograr implementar lo requerido la respuesta de:
-1. implementacion de endpoint /health
+1. implementacion de endpoint `/health`
 2. ejecucion de pruebas unitarias
-3. posibilidad de capturar las metricas GET /actuator/metrics y GET /actuator/health
+3. posibilidad de capturar las metricas `GET /actuator/metrics` y `GET /actuator/health`
+4. se crea archivo logback para que emita un json por defecto y se pueda capturar con ELK o CloudWatch
+5. se le crea una capa de metricas `/actuator/prometheus` esto permite integrarlo con Prometheus o Grafana
 
 ## Especificaciones de la APP
 
-Se configura para que solo responda un 'OK' al visitar /health sobre el puerto 8080 del localhost
+Se configura para que solo responda un `OK` al visitar /health sobre el puerto 8080 del localhost
 ```Bash
 public class HealthController {
 
