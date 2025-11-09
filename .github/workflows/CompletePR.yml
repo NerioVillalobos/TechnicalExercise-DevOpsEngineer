@@ -44,17 +44,18 @@ jobs:
 
       # Desde aquí es "despliegue simulado" a Kubernetes.
       # No hacemos push a ningún registry.
-
+      #
       #- name: Set up kubectl
       #  uses: azure/setup-kubectl@v4
       #  with:
-      #    version: 'v1.30.0'
+      #    version: "v1.30.0"
       #
       #- name: Deploy to Kubernetes Test Namespace (simulado)
-      #  if : $ {{ secrets.KUBE_CONFIG_DATA != '' }}
+      #  if : $ {{ secrets.KUBE_CONFIG_DATA != '' }}  <<-- Error de sintaxis realizada manualmente para que sea efectivo el comentario
       #  env:
-      #    KUBE_CONFIG_DATA: $ {{ secrets.KUBE_CONFIG_DATA }}
+      #    KUBE_CONFIG_DATA: $ {{ secrets.KUBE_CONFIG_DATA }}  <<-- Error de sintaxis realizada manualmente para que sea efectivo el comentario
       #  run: |
+      #    echo "🔧 Desplegando microservicio en namespace: $NAMESPACE"
       #    echo "$KUBE_CONFIG_DATA" | base64 -d > kubeconfig
       #    export KUBECONFIG=kubeconfig
       #    kubectl apply -n $NAMESPACE -f k8s/deployment.yaml
@@ -62,3 +63,4 @@ jobs:
       #    kubectl apply -n $NAMESPACE -f k8s/ingress.yaml || true
       #    kubectl rollout status deployment/$IMAGE_NAME -n $NAMESPACE
       #    kubectl get pods -n $NAMESPACE
+
