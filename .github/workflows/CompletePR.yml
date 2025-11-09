@@ -1,7 +1,7 @@
-name: Complete PR Build & Deploy to Test (local/simulated)
+name: Pull Request to Sprint
 
 on:
-  pull_request:
+  push:
     branches: [ "sprint/*" ]
 
 jobs:

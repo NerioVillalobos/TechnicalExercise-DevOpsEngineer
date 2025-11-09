@@ -1,0 +1,58 @@
+name: Manual Deploy by Tag
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag a desplegar (ej: v1.0.0)"
+        required: true
+        default: "v1.0.0"
+      environment:
+        description: "Ambiente de destino (test/uat/prod)"
+        required: true
+        default: "test"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # esto es opcional pero útil si usás environments de GitHub con aprobación
+    environment: ${{ github.event.inputs.environment }}
+
+    env:
+      TAG: ${{ github.event.inputs.tag }}
+      ENVIRONMENT: ${{ github.event.inputs.environment }}
+      IMAGE_NAME: simplemicroservice
+
+    steps:
+      - name: Checkout specific tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'v1.30.0'
+
+      - name: Decode kubeconfig
+        env:
+          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
+        run: |
+          echo "$KUBE_CONFIG_DATA" | base64 -d > kubeconfig
+          export KUBECONFIG=kubeconfig
+
+      - name: Deploy to Kubernetes
+        run: |
+          export KUBECONFIG=kubeconfig
+          # acá podés tener manifiestos por ambiente
+          if [ "$ENVIRONMENT" = "test" ]; then
+            kubectl apply -n test -f k8s/deployment.yaml
+            kubectl apply -n test -f k8s/service.yaml
+          elif [ "$ENVIRONMENT" = "uat" ]; then
+            kubectl apply -n uat -f k8s/deployment.yaml
+            kubectl apply -n uat -f k8s/service.yaml
+          else
+            kubectl apply -n prod -f k8s/deployment.yaml
+            kubectl apply -n prod -f k8s/service.yaml
+          fi
+          kubectl get pods -n $ENVIRONMENT
