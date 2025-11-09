@@ -1,11 +1,10 @@
-name: Complete PR Build & Deploy to Test (local/simulated)
-
 on:
-  pull_request:
+  push:
     branches: [ "sprint/*" ]
 
 jobs:
   build-deploy:
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
 
     env:
