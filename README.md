@@ -1,5 +1,5 @@
 # TechnicalExercise-DevOpsEngineer
-design and implement a minimal yet complete workflow for deploying a microservice
+Design and implement a minimal yet complete workflow for deploying a microservice
 
 
 ## Como se realizo la solucion
@@ -33,20 +33,71 @@ public class HealthController {
 
 Se configura tambien para que devuelva un status para su monitoreo y una ruta que devuelven los valores requeridos para obtener mas informacion del microservicio
 
-## Metodologia y Automatizacion CI/CD
+## Metodología y Automatización CI/CD
 
-El branch model a utilizar se basara en el workflow git standard que conocemos
-tendremos las ramas:
-- **master** : rama principal
-- **sprints** : rama de seguimiento de desarrollo para trabajo en equipo
-- **features** : ramas de historias
-- **hotfix** : ramas que identifican una reparacion inmediata en el ambiente de produccion
+El modelo de ramas (branch model) se basa en un flujo Git estándar, manteniendo una estructura clara de versiones y responsabilidades:
 
+- **master** : rama principal de producción.
+- **sprints** : rama de seguimiento de desarrollo en equipo.
+- **features** : ramas individuales para desarrollo de historias de usuario.
+- **hotfix** : ramas dedicadas a correcciones urgentes en ambientes productivos.
 
 ![Branch Model](imagen/brach-model.png "Branch Model")
 
-Fueron creados dos archivos YML dentro del repositorio de workflows de Github que realizan las siguientes funciones
-- **PushOn** : Al momento que el desarrollador ejecute la accion de push hacia el repositorio este se activara realizando primero las pruebas y validacion del componente si este no pasa las pruebas no se completa la funcion de push en el repositorio.
-- **CompletePR** : Se realiza el PR para la revision y aprobacion del cambio, cuando este se encuentra revisado al momento de su aceptacion se ejecuta la accion de despliegue en el ambiente de prueba.
-- **Jobs** : Se crean jobs directos para el despliegue hacia ambientes altos como UAT, STAGE y PROD
+Fueron creados dos archivos YAML dentro del directorio de workflows de GitHub Actions que automatizan las validaciones y despliegues:
+
+- **PushOn.yml** :  
+  Se ejecuta automáticamente al realizar un `git push` hacia ramas `feature/*` o `hotfix/*`.  
+  Este pipeline realiza compilación y ejecución de pruebas unitarias (`mvn clean verify`).  
+  Si las pruebas pasan exitosamente, el push se completa; en caso contrario, el flujo se detiene marcando el error en GitHub.
+
+- **CompletePR.yml** :  
+  Se ejecuta al crear un Pull Request hacia la rama `de sprint`.  
+  Este pipeline realiza un proceso de integración completo que incluye:
+  - **Checkout** del código.
+  - **Compilación y pruebas unitarias** (`mvn clean package`).
+  - **Construcción de la imagen Docker** (`docker build`).
+  - **Aplicación de manifiestos Kubernetes** en un *namespace* de prueba (`kubectl apply`).
+
+### Flujo general del pipeline
+
+1. **Developer / Git**
+   - El desarrollador realiza cambios en el proyecto.
+   - Ejecuta `git push` hacia una rama `feature/...` o `hotfix/...`.
+
+2. **GitHub Actions – PushOn.yml**
+   - Se dispara el workflow ligero.
+   - Ejecuta `./mvnw clean verify`.
+   - Si pasa: el código se integra en el repositorio.
+   - Si falla: el push queda bloqueado con un check rojo.
+
+3. **Pull Request → `feature` y `hotfix`**
+   - Se crea un Pull Request desde `feature/...` o `hotfix/...` hacia `main`.
+
+4. **GitHub Actions – CompletePR.yml**
+   - Se dispara el workflow completo.
+   - Realiza compilación, test, construcción de la imagen Docker y (si está configurado) despliegue al ambiente de prueba.
+
+5. **Kubernetes (ambiente de prueba)**
+   - El `Deployment` se actualiza con la nueva imagen.
+   - Se crea o actualiza el `Pod` que contiene el microservicio Spring Boot.
+   - El `Service` interno de Kubernetes expone el pod dentro del cluster.
+   - El `Ingress` permite el acceso HTTP externo al microservicio.
+   - Prometheus y ELK recolectan métricas y logs estructurados para observabilidad.
+
+Este flujo permite validar continuamente la calidad del código, mantener la trazabilidad entre ramas y asegurar la entrega automatizada hacia entornos controlados de prueba.
+
+6. **Despliegues a ambientes altos**
+  - Se realizan a partir de un JOB donde se selecciona el tag y version incorporado por un Pull Request en la rama `main`
+
+  Ambos pipelines en conjunto (PushOn.yml y CompletePR.yml) aseguran que:
+  - Los commits solo se integran si superan las pruebas.
+  - Los Pull Requests generan builds reproducibles y verificables en Kubernetes.
+  - La calidad y estabilidad del código se mantienen antes de llegar a producción.
+
+## Diagrama de la solucion
+
+![Solution diagram](imagen/TechnicalExercise-Solution.png "Solution diagram")
+
+
 
