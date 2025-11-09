@@ -51,6 +51,23 @@ Fueron creados dos archivos YAML dentro del directorio de workflows de GitHub Ac
   Este pipeline realiza compilación y ejecución de pruebas unitarias (`mvn clean verify`).  
   Si las pruebas pasan exitosamente, el push se completa; en caso contrario, el flujo se detiene marcando el error en GitHub.
 
+## Dockerización
+Se incluye un `Dockerfile` en la raíz del proyecto que construye una imagen a partir del JAR generado por Maven:
+
+1. `mvn clean package`
+2. `docker build -t simplemicroservice:local .`
+3. `docker run -p 8080:8080 simplemicroservice:local`
+
+Esto permite ejecutar el microservicio en un contenedor.
+
+## Entorno de ejecución (Producción)
+Se eligió **Kubernetes** como plataforma de ejecución porque:
+- soporta múltiples microservicios Java como los descritos en el enunciado,
+- permite health checks nativos usando `/actuator/health`,
+- se integra fácilmente con CI/CD y despliegues declarativos,
+- facilita observabilidad centralizada (Prometheus, ELK).
+
+
 - **CompletePR.yml** :  
   Se ejecuta al crear un Pull Request hacia la rama `de sprint`.  
   Este pipeline realiza un proceso de integración completo que incluye:
@@ -95,9 +112,33 @@ Este flujo permite validar continuamente la calidad del código, mantener la tra
   - Los Pull Requests generan builds reproducibles y verificables en Kubernetes.
   - La calidad y estabilidad del código se mantienen antes de llegar a producción.
 
+### Publicación en registry (opcional)
+El punto 4 del ejercicio solicita publicar la imagen en un registry. El workflow `CompletePR.yml` está preparado para incluir pero no se coloco para permitir la ejecución en un entorno de evaluación sin credenciales. simplemente se deben agregar las opciones en las secciones de `docker/login-action` y `docker push` y configurar el secret del registry.
+
+## Observabilidad
+- Logging estructurado mediante Logback (formato JSON) para centralización (ELK / CloudWatch).
+- Métricas expuestas vía Spring Boot Actuator:
+  - `/actuator/health`
+  - `/actuator/metrics`
+  - `/actuator/prometheus`
+Esto permite integrarse con Prometheus y Grafana.
+
+
 ## Diagrama de la solucion
 
 ![Solution diagram](imagen/TechnicalExercise-Solution.png "Solution diagram")
 
 
+## Gestión de vulnerabilidades
 
+- **Dependencias de código**: usar `mvn versions:display-dependency-updates` y/o integración con GitHub Dependabot para detectar librerías vulnerables.
+- **Imágenes de contenedor**: escanear la imagen generada con una herramienta como Trivy o Grype en la etapa de CI (paso opcional que se puede agregar en `CompletePR.yml`).
+- **Capas del SO base**: mantener la imagen base actualizada (`eclipse-temurin:17-jre-alpine` o similar) y fijar versiones para evitar inconvenientes por versiones.
+- **Manejo de Vulnerabilidades**: si se detecta una vulnerabilidad grave, se actualiza el código, se recompila la imagen y se vuelve a desplegar para asegurar que el servicio no quede expuesto.
+
+## Decisiones técnicas clave
+1. **Framework**: Spring Boot en lugar de Micronaut, por madurez y estándar enterprise, se puede trabajar con Micronaut en situaciones muy especificas donde se requiera mas vlocidad y mas eficiencia en los recursos.
+2. **Contenedores**: Docker como formato de empaquetado para permitir despliegue en cualquier plataforma.
+3. **Orquestador**: Kubernetes elegido por soporte de health checks, escalabilidad y observabilidad integrada.
+4. **CI/CD**: GitHub Actions dividido en dos workflows (validación de push y pipeline completo de PR) para separar calidad de integración.
+5. **Observabilidad**: uso de Actuator y logs JSON para integración con Prometheus / ELK.
