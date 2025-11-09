@@ -1,3 +1,5 @@
+name: Pull Request to Sprint
+
 on:
   push:
     branches: [ "sprint/*" ]
